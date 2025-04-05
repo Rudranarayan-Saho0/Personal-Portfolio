@@ -46,6 +46,34 @@ mobileMenuBtn.addEventListener('click', () => {
     navLinks.classList.toggle('active');
 });
 
+// Notification function
+function showNotification(message, type = 'info') {
+    // Remove any existing notifications
+    const existingNotification = document.querySelector('.notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+
+    // Create new notification
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    // Show notification with animation
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 10);
+
+    // Hide notification after 5 seconds
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
+    }, 5000);
+}
+
 // Contact form submission
 const contactForm = document.getElementById('contact-form');
 contactForm.addEventListener('submit', async (e) => {
@@ -54,8 +82,9 @@ contactForm.addEventListener('submit', async (e) => {
     // Show loading state
     const submitBtn = contactForm.querySelector('.submit-btn');
     const originalBtnText = submitBtn.textContent;
-    submitBtn.textContent = 'Sending...';
+    submitBtn.textContent = '';
     submitBtn.disabled = true;
+    submitBtn.classList.add('loading');
     
     const formData = new FormData(contactForm);
     const data = {
@@ -71,14 +100,19 @@ contactForm.addEventListener('submit', async (e) => {
         
         // Clear form
         contactForm.reset();
-        alert('Message sent successfully!');
+        
+        // Show success notification
+        showNotification('Message sent successfully!', 'success');
     } catch (error) {
         console.error('Error:', error);
-        alert('Failed to send message. Please try again.');
+        
+        // Show error notification
+        showNotification('Failed to send message. Please try again.', 'error');
     } finally {
         // Reset button state
         submitBtn.textContent = originalBtnText;
         submitBtn.disabled = false;
+        submitBtn.classList.remove('loading');
     }
 });
 
