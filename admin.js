@@ -1,18 +1,28 @@
 // Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyDxQZQZQZQZQZQZQZQZQZQZQZQZQZQZQZQ",
-    authDomain: "personal-portfolio-12345.firebaseapp.com",
-    projectId: "personal-portfolio-12345",
-    storageBucket: "personal-portfolio-12345.appspot.com",
-    messagingSenderId: "123456789012",
-    appId: "1:123456789012:web:abcdef1234567890"
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID"
 };
 
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// Admin credentials (in a real app, this would be stored securely on the server)
+// Enable offline persistence
+db.enablePersistence()
+    .catch((err) => {
+        if (err.code == 'failed-precondition') {
+            console.log('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+        } else if (err.code == 'unimplemented') {
+            console.log('The current browser does not support persistence.');
+        }
+    });
+
+// Admin credentials
 const ADMIN_USERNAME = "Rudra";
 const ADMIN_PASSWORD = "Rudra@2005";
 
@@ -67,24 +77,25 @@ logoutBtn.addEventListener('click', () => {
 });
 
 // Function to load messages
-async function loadMessages() {
+function loadMessages() {
     const messagesContainer = document.getElementById('messages-container');
     messagesContainer.innerHTML = '<div class="loading">Loading messages...</div>';
 
     try {
-        const snapshot = await db.collection('messages')
-            .orderBy('timestamp', 'desc')
-            .get();
-
-        if (snapshot.empty) {
+        // Get messages from local storage
+        const messages = JSON.parse(localStorage.getItem('messages') || '[]');
+        
+        if (messages.length === 0) {
             messagesContainer.innerHTML = '<div class="no-messages">No messages found</div>';
             return;
         }
 
+        // Sort messages by timestamp (newest first)
+        messages.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
         let messagesHTML = '';
-        snapshot.forEach(doc => {
-            const message = doc.data();
-            const timestamp = message.timestamp ? message.timestamp.toDate().toLocaleString() : 'No timestamp';
+        messages.forEach(message => {
+            const timestamp = message.timestamp ? new Date(message.timestamp).toLocaleString() : 'No timestamp';
             messagesHTML += `
                 <div class="message-card">
                     <div class="message-header">
@@ -93,7 +104,7 @@ async function loadMessages() {
                     </div>
                     <p class="email">${message.email}</p>
                     <p class="message-content">${message.message}</p>
-                    <button class="delete-btn" onclick="deleteMessage('${doc.id}')">Delete</button>
+                    <button class="delete-btn" onclick="deleteMessage('${message.id}')">Delete</button>
                 </div>
             `;
         });
@@ -106,13 +117,21 @@ async function loadMessages() {
 }
 
 // Function to delete a message
-async function deleteMessage(messageId) {
+function deleteMessage(messageId) {
     if (!confirm('Are you sure you want to delete this message?')) {
         return;
     }
 
     try {
-        await db.collection('messages').doc(messageId).delete();
+        // Get messages from local storage
+        const messages = JSON.parse(localStorage.getItem('messages') || '[]');
+        
+        // Filter out the message to delete
+        const updatedMessages = messages.filter(message => message.id !== messageId);
+        
+        // Save updated messages back to local storage
+        localStorage.setItem('messages', JSON.stringify(updatedMessages));
+        
         showNotification('Message deleted successfully', 'success');
         loadMessages(); // Reload messages after deletion
     } catch (error) {
@@ -144,10 +163,11 @@ function showNotification(message, type = 'info') {
 
 // Load messages when the page loads
 document.addEventListener('DOMContentLoaded', () => {
-    loadMessages();
-    // Refresh messages every 30 seconds
-    setInterval(loadMessages, 30000);
-});
-
-// Initialize the page
-document.addEventListener('DOMContentLoaded', checkLoginStatus); 
+    checkLoginStatus();
+    // Refresh messages every 30 seconds if logged in
+    setInterval(() => {
+        if (sessionStorage.getItem('adminLoggedIn') === 'true') {
+            loadMessages();
+        }
+    }, 30000);
+}); 

@@ -26,17 +26,27 @@ window.addEventListener('scroll', function() {
 
 // Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyDxQZQZQZQZQZQZQZQZQZQZQZQZQZQZQZQ",
-    authDomain: "personal-portfolio-12345.firebaseapp.com",
-    projectId: "personal-portfolio-12345",
-    storageBucket: "personal-portfolio-12345.appspot.com",
-    messagingSenderId: "123456789012",
-    appId: "1:123456789012:web:abcdef1234567890"
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID"
 };
 
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+
+// Enable offline persistence
+db.enablePersistence()
+    .catch((err) => {
+        if (err.code == 'failed-precondition') {
+            console.log('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+        } else if (err.code == 'unimplemented') {
+            console.log('The current browser does not support persistence.');
+        }
+    });
 
 // Mobile menu functionality
 const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
@@ -88,15 +98,18 @@ contactForm.addEventListener('submit', async (e) => {
     
     const formData = new FormData(contactForm);
     const data = {
+        id: Date.now().toString(), // Generate a unique ID
         name: formData.get('name'),
         email: formData.get('email'),
         message: formData.get('message'),
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        timestamp: new Date().toISOString()
     };
 
     try {
-        // Attempt to send the message
-        await db.collection('messages').add(data);
+        // Save message to local storage
+        const messages = JSON.parse(localStorage.getItem('messages') || '[]');
+        messages.push(data);
+        localStorage.setItem('messages', JSON.stringify(messages));
         
         // Clear form
         contactForm.reset();
