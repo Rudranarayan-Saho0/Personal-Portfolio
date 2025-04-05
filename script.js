@@ -71,9 +71,6 @@ contactForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     console.log('Form submitted');
-    console.log('USE_JSONBIN:', USE_JSONBIN);
-    console.log('JSONBIN_API_KEY:', JSONBIN_API_KEY);
-    console.log('JSONBIN_BIN_ID:', JSONBIN_BIN_ID);
     
     // Show loading state
     const submitBtn = contactForm.querySelector('.submit-btn');
@@ -94,6 +91,13 @@ contactForm.addEventListener('submit', async (e) => {
     console.log('Form data:', data);
 
     try {
+        // First save to local storage as backup
+        const localMessages = JSON.parse(localStorage.getItem('messages') || '[]');
+        localMessages.push(data);
+        localStorage.setItem('messages', JSON.stringify(localMessages));
+        console.log('Saved to local storage:', localMessages);
+        
+        // Then try to save to JSONbin.io if enabled
         if (USE_JSONBIN) {
             try {
                 // First, get existing messages from JSONbin.io
@@ -101,7 +105,8 @@ contactForm.addEventListener('submit', async (e) => {
                 const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
                     method: 'GET',
                     headers: {
-                        'X-Master-Key': JSONBIN_API_KEY
+                        'X-Master-Key': JSONBIN_API_KEY,
+                        'Content-Type': 'application/json'
                     }
                 });
                 
@@ -111,9 +116,17 @@ contactForm.addEventListener('submit', async (e) => {
                 if (response.ok) {
                     const result = await response.json();
                     console.log('JSONbin.io fetch response:', result);
-                    messages = result.record && result.record.messages ? result.record.messages : [];
+                    
+                    // Check if the response has the expected structure
+                    if (result.record && Array.isArray(result.record.messages)) {
+                        messages = result.record.messages;
+                    } else {
+                        console.warn('Invalid response structure from JSONbin.io, initializing new messages array');
+                        messages = [];
+                    }
                 } else {
-                    console.warn('JSONbin.io fetch failed, creating new messages array');
+                    console.warn('JSONbin.io fetch failed, using local messages array');
+                    messages = localMessages;
                 }
                 
                 // Add new message
@@ -134,21 +147,17 @@ contactForm.addEventListener('submit', async (e) => {
                 console.log('JSONbin.io update response status:', updateResponse.status);
                 
                 if (!updateResponse.ok) {
-                    throw new Error('Failed to update JSONbin.io');
+                    const errorText = await updateResponse.text();
+                    console.error('JSONbin.io update failed:', updateResponse.status, errorText);
+                    // Don't throw here, we already saved to local storage
+                } else {
+                    console.log('Successfully updated JSONbin.io');
                 }
-                
-                console.log('Successfully updated JSONbin.io');
             } catch (jsonbinError) {
                 console.error('JSONbin.io error:', jsonbinError);
-                throw jsonbinError; // Re-throw to show error to user
+                // Don't throw here, we already saved to local storage
             }
         }
-        
-        // Also save to local storage as backup
-        const localMessages = JSON.parse(localStorage.getItem('messages') || '[]');
-        localMessages.push(data);
-        localStorage.setItem('messages', JSON.stringify(localMessages));
-        console.log('Saved to local storage:', localMessages);
         
         // Clear form
         contactForm.reset();

@@ -76,10 +76,6 @@ async function loadMessages() {
     }
     
     messagesContainer.innerHTML = '<div class="loading">Loading messages...</div>';
-    
-    console.log('USE_JSONBIN:', USE_JSONBIN);
-    console.log('JSONBIN_API_KEY:', JSONBIN_API_KEY);
-    console.log('JSONBIN_BIN_ID:', JSONBIN_BIN_ID);
 
     try {
         // Try to get messages from JSONbin.io first if enabled
@@ -91,7 +87,8 @@ async function loadMessages() {
                 const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
                     method: 'GET',
                     headers: {
-                        'X-Master-Key': JSONBIN_API_KEY
+                        'X-Master-Key': JSONBIN_API_KEY,
+                        'Content-Type': 'application/json'
                     }
                 });
                 
@@ -101,7 +98,7 @@ async function loadMessages() {
                     const result = await response.json();
                     console.log('JSONbin.io response:', result);
                     
-                    if (result.record && result.record.messages) {
+                    if (result.record && Array.isArray(result.record.messages)) {
                         messages = result.record.messages;
                         console.log('Messages loaded from JSONbin.io:', messages);
                     } else {
@@ -198,7 +195,10 @@ async function deleteMessage(messageId) {
                 });
                 
                 if (!updateResponse.ok) {
-                    console.warn('JSONbin.io update failed:', updateResponse.status, updateResponse.statusText);
+                    const errorText = await updateResponse.text();
+                    console.warn('JSONbin.io update failed:', updateResponse.status, errorText);
+                } else {
+                    console.log('Successfully updated JSONbin.io after deletion');
                 }
             } catch (error) {
                 console.warn('Error updating JSONbin:', error);
