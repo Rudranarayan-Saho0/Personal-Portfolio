@@ -73,5 +73,10 @@ async function addTestMessage() {
     }
 }
 
-// Run the function
-addTestMessage(); 
+// Don't run automatically, wait for button click
+document.addEventListener('DOMContentLoaded', () => {
+    const addMessageBtn = document.getElementById('addMessage');
+    if (addMessageBtn) {
+        addMessageBtn.addEventListener('click', addTestMessage);
+    }
+}); 

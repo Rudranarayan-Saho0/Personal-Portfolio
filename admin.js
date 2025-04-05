@@ -40,7 +40,9 @@ const logoutBtn = document.getElementById('logout-btn');
 
 // Check if user is already logged in
 function checkLoginStatus() {
+    console.log('Checking login status...');
     const isLoggedIn = sessionStorage.getItem('adminLoggedIn');
+    console.log('Is logged in:', isLoggedIn);
     if (isLoggedIn === 'true') {
         showMessages();
     } else {
@@ -50,12 +52,14 @@ function checkLoginStatus() {
 
 // Show login form
 function showLogin() {
+    console.log('Showing login form');
     loginSection.classList.remove('hidden');
     messagesSection.classList.add('hidden');
 }
 
 // Show messages section
 function showMessages() {
+    console.log('Showing messages section');
     loginSection.classList.add('hidden');
     messagesSection.classList.remove('hidden');
     loadMessages();
@@ -67,26 +71,36 @@ loginForm.addEventListener('submit', (e) => {
     const username = document.getElementById('admin-username').value;
     const password = document.getElementById('admin-password').value;
 
+    console.log('Login attempt - Username:', username);
     if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+        console.log('Login successful');
         sessionStorage.setItem('adminLoggedIn', 'true');
         showMessages();
     } else {
+        console.log('Login failed');
         alert('Invalid username or password');
     }
 });
 
 // Handle logout
 logoutBtn.addEventListener('click', () => {
+    console.log('Logging out');
     sessionStorage.removeItem('adminLoggedIn');
     showLogin();
 });
 
 // Function to load messages
 async function loadMessages() {
+    console.log('Loading messages...');
     const messagesContainer = document.getElementById('messages-container');
+    
+    if (!messagesContainer) {
+        console.error('Messages container not found!');
+        return;
+    }
+    
     messagesContainer.innerHTML = '<div class="loading">Loading messages...</div>';
     
-    console.log('Loading messages...');
     console.log('USE_JSONBIN:', USE_JSONBIN);
     console.log('JSONBIN_API_KEY:', JSONBIN_API_KEY);
     console.log('JSONBIN_BIN_ID:', JSONBIN_BIN_ID);
@@ -110,8 +124,23 @@ async function loadMessages() {
                 if (response.ok) {
                     const result = await response.json();
                     console.log('JSONbin.io response:', result);
-                    messages = result.record.messages || [];
-                    console.log('Messages loaded from JSONbin.io:', messages);
+                    
+                    if (result.record && result.record.messages) {
+                        messages = result.record.messages;
+                        console.log('Messages loaded from JSONbin.io:', messages);
+                    } else {
+                        console.warn('No messages array found in JSONbin.io response');
+                        // Initialize the messages array in JSONbin.io
+                        const initResponse = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Master-Key': JSONBIN_API_KEY
+                            },
+                            body: JSON.stringify({ messages: [] })
+                        });
+                        console.log('Initialized messages array in JSONbin.io:', initResponse.status);
+                    }
                 } else {
                     console.warn('JSONbin.io fetch failed:', response.status, response.statusText);
                     // Fall back to local storage

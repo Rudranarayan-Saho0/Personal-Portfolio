@@ -39,5 +39,10 @@ async function testJSONbinAPI() {
     }
 }
 
-// Run the test
-testJSONbinAPI(); 
+// Don't run automatically, wait for button click
+document.addEventListener('DOMContentLoaded', () => {
+    const runTestBtn = document.getElementById('runTest');
+    if (runTestBtn) {
+        runTestBtn.addEventListener('click', testJSONbinAPI);
+    }
+}); 
