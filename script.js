@@ -85,9 +85,9 @@ function showNotification(message, type = 'info') {
 }
 
 // JSONbin.io configuration
-const JSONBIN_API_KEY = '$2a$10$YOUR_API_KEY'; // Replace with your actual API key
-const JSONBIN_BIN_ID = 'YOUR_BIN_ID'; // Replace with your actual bin ID
-const USE_JSONBIN = false; // Set to true when you have valid API key and bin ID
+const JSONBIN_API_KEY = '$2a$10$XGwPbUeqH1q6l4qk9iwB0eeMYLhC3oZu9/oNvvHZtHAD212nVBY46';
+const JSONBIN_BIN_ID = '67f159d98960c979a57ecc76';
+const USE_JSONBIN = true; // Enable JSONbin.io integration
 
 // Contact form submission
 const contactForm = document.getElementById('contact-form');
