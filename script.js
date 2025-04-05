@@ -111,6 +111,10 @@ contactForm.addEventListener('submit', async (e) => {
         messages.push(data);
         localStorage.setItem('messages', JSON.stringify(messages));
         
+        // Log for debugging
+        console.log('Message saved:', data);
+        console.log('All messages:', JSON.parse(localStorage.getItem('messages')));
+        
         // Clear form
         contactForm.reset();
         

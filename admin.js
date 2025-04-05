@@ -84,6 +84,7 @@ function loadMessages() {
     try {
         // Get messages from local storage
         const messages = JSON.parse(localStorage.getItem('messages') || '[]');
+        console.log('Loaded messages:', messages); // Debug log
         
         if (messages.length === 0) {
             messagesContainer.innerHTML = '<div class="no-messages">No messages found</div>';
