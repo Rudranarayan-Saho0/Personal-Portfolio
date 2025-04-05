@@ -24,30 +24,6 @@ window.addEventListener('scroll', function() {
     }
 });
 
-// Firebase configuration
-const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
-};
-
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-
-// Enable offline persistence
-db.enablePersistence()
-    .catch((err) => {
-        if (err.code == 'failed-precondition') {
-            console.log('Multiple tabs open, persistence can only be enabled in one tab at a time.');
-        } else if (err.code == 'unimplemented') {
-            console.log('The current browser does not support persistence.');
-        }
-    });
-
 // Mobile menu functionality
 const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
 const navLinks = document.querySelector('.nav-links');
@@ -101,7 +77,7 @@ contactForm.addEventListener('submit', async (e) => {
     
     // Show loading state
     const submitBtn = contactForm.querySelector('.submit-btn');
-    const originalBtnText = submitBtn.textContent;
+    const originalBtnText = submitBtn.textContent || 'Send Message';
     submitBtn.textContent = '';
     submitBtn.disabled = true;
     submitBtn.classList.add('loading');
@@ -118,16 +94,9 @@ contactForm.addEventListener('submit', async (e) => {
     console.log('Form data:', data);
 
     try {
-        // Save to local storage first (always works)
-        const localMessages = JSON.parse(localStorage.getItem('messages') || '[]');
-        localMessages.push(data);
-        localStorage.setItem('messages', JSON.stringify(localMessages));
-        console.log('Saved to local storage:', localMessages);
-        
-        // Try to save to JSONbin.io if enabled
         if (USE_JSONBIN) {
             try {
-                // First, get existing messages
+                // First, get existing messages from JSONbin.io
                 console.log('Fetching existing messages from JSONbin.io...');
                 const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
                     method: 'GET',
@@ -138,44 +107,48 @@ contactForm.addEventListener('submit', async (e) => {
                 
                 console.log('JSONbin.io fetch response status:', response.status);
                 
-                if (!response.ok) {
-                    console.warn('JSONbin.io fetch failed:', response.status, response.statusText);
-                    // Continue with local storage only
-                } else {
+                let messages = [];
+                if (response.ok) {
                     const result = await response.json();
                     console.log('JSONbin.io fetch response:', result);
-                    const messages = result.record.messages || [];
-                    console.log('Existing messages from JSONbin.io:', messages);
-                    
-                    // Add new message
-                    messages.push(data);
-                    console.log('Updated messages for JSONbin.io:', messages);
-                    
-                    // Update the bin with new messages
-                    console.log('Updating JSONbin.io with new messages...');
-                    const updateResponse = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Master-Key': JSONBIN_API_KEY
-                        },
-                        body: JSON.stringify({ messages })
-                    });
-                    
-                    console.log('JSONbin.io update response status:', updateResponse.status);
-                    
-                    if (!updateResponse.ok) {
-                        console.warn('JSONbin.io update failed:', updateResponse.status, updateResponse.statusText);
-                        // Continue with local storage only
-                    } else {
-                        console.log('Successfully updated JSONbin.io');
-                    }
+                    messages = result.record && result.record.messages ? result.record.messages : [];
+                } else {
+                    console.warn('JSONbin.io fetch failed, creating new messages array');
                 }
+                
+                // Add new message
+                messages.push(data);
+                console.log('Updated messages for JSONbin.io:', messages);
+                
+                // Update JSONbin.io with new messages
+                console.log('Updating JSONbin.io with new messages...');
+                const updateResponse = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': JSONBIN_API_KEY
+                    },
+                    body: JSON.stringify({ messages })
+                });
+                
+                console.log('JSONbin.io update response status:', updateResponse.status);
+                
+                if (!updateResponse.ok) {
+                    throw new Error('Failed to update JSONbin.io');
+                }
+                
+                console.log('Successfully updated JSONbin.io');
             } catch (jsonbinError) {
-                console.warn('JSONbin.io error:', jsonbinError);
-                // Continue with local storage only
+                console.error('JSONbin.io error:', jsonbinError);
+                throw jsonbinError; // Re-throw to show error to user
             }
         }
+        
+        // Also save to local storage as backup
+        const localMessages = JSON.parse(localStorage.getItem('messages') || '[]');
+        localMessages.push(data);
+        localStorage.setItem('messages', JSON.stringify(localMessages));
+        console.log('Saved to local storage:', localMessages);
         
         // Clear form
         contactForm.reset();
