@@ -14,7 +14,7 @@ const db = firebase.firestore();
 
 // Admin credentials (in a real app, this would be stored securely on the server)
 const ADMIN_USERNAME = "Rudra";
-const ADMIN_PASSWORD = "Rudra22005";
+const ADMIN_PASSWORD = "Rudra@2005";
 
 // DOM elements
 const loginSection = document.getElementById('login-section');
