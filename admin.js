@@ -85,6 +85,11 @@ logoutBtn.addEventListener('click', () => {
 async function loadMessages() {
     const messagesContainer = document.getElementById('messages-container');
     messagesContainer.innerHTML = '<div class="loading">Loading messages...</div>';
+    
+    console.log('Loading messages...');
+    console.log('USE_JSONBIN:', USE_JSONBIN);
+    console.log('JSONBIN_API_KEY:', JSONBIN_API_KEY);
+    console.log('JSONBIN_BIN_ID:', JSONBIN_BIN_ID);
 
     try {
         // Try to get messages from JSONbin.io first if enabled
@@ -92,6 +97,7 @@ async function loadMessages() {
         
         if (USE_JSONBIN) {
             try {
+                console.log('Fetching from JSONbin.io...');
                 const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
                     method: 'GET',
                     headers: {
@@ -99,32 +105,40 @@ async function loadMessages() {
                     }
                 });
                 
+                console.log('JSONbin.io response status:', response.status);
+                
                 if (response.ok) {
                     const result = await response.json();
+                    console.log('JSONbin.io response:', result);
                     messages = result.record.messages || [];
-                    console.log('Messages loaded from JSONbin.io');
+                    console.log('Messages loaded from JSONbin.io:', messages);
                 } else {
                     console.warn('JSONbin.io fetch failed:', response.status, response.statusText);
                     // Fall back to local storage
                     messages = JSON.parse(localStorage.getItem('messages') || '[]');
+                    console.log('Falling back to local storage:', messages);
                 }
             } catch (error) {
                 console.warn('Error fetching from JSONbin:', error);
                 // Fall back to local storage
                 messages = JSON.parse(localStorage.getItem('messages') || '[]');
+                console.log('Error occurred, using local storage:', messages);
             }
         } else {
             // Use local storage directly
             messages = JSON.parse(localStorage.getItem('messages') || '[]');
+            console.log('Using local storage directly:', messages);
         }
         
         if (messages.length === 0) {
+            console.log('No messages found');
             messagesContainer.innerHTML = '<div class="no-messages">No messages found</div>';
             return;
         }
 
         // Sort messages by timestamp (newest first)
         messages.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        console.log('Sorted messages:', messages);
 
         let messagesHTML = '';
         messages.forEach(message => {
@@ -142,6 +156,7 @@ async function loadMessages() {
             `;
         });
 
+        console.log('Generated HTML:', messagesHTML);
         messagesContainer.innerHTML = messagesHTML;
     } catch (error) {
         console.error('Error loading messages:', error);
@@ -216,6 +231,7 @@ function showNotification(message, type = 'info') {
 
 // Load messages when the page loads
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM loaded, checking login status');
     checkLoginStatus();
     // Refresh messages every 30 seconds if logged in
     setInterval(() => {

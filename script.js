@@ -94,6 +94,11 @@ const contactForm = document.getElementById('contact-form');
 contactForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
+    console.log('Form submitted');
+    console.log('USE_JSONBIN:', USE_JSONBIN);
+    console.log('JSONBIN_API_KEY:', JSONBIN_API_KEY);
+    console.log('JSONBIN_BIN_ID:', JSONBIN_BIN_ID);
+    
     // Show loading state
     const submitBtn = contactForm.querySelector('.submit-btn');
     const originalBtnText = submitBtn.textContent;
@@ -109,17 +114,21 @@ contactForm.addEventListener('submit', async (e) => {
         message: formData.get('message'),
         timestamp: new Date().toISOString()
     };
+    
+    console.log('Form data:', data);
 
     try {
         // Save to local storage first (always works)
         const localMessages = JSON.parse(localStorage.getItem('messages') || '[]');
         localMessages.push(data);
         localStorage.setItem('messages', JSON.stringify(localMessages));
+        console.log('Saved to local storage:', localMessages);
         
         // Try to save to JSONbin.io if enabled
         if (USE_JSONBIN) {
             try {
                 // First, get existing messages
+                console.log('Fetching existing messages from JSONbin.io...');
                 const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
                     method: 'GET',
                     headers: {
@@ -127,17 +136,23 @@ contactForm.addEventListener('submit', async (e) => {
                     }
                 });
                 
+                console.log('JSONbin.io fetch response status:', response.status);
+                
                 if (!response.ok) {
                     console.warn('JSONbin.io fetch failed:', response.status, response.statusText);
                     // Continue with local storage only
                 } else {
                     const result = await response.json();
+                    console.log('JSONbin.io fetch response:', result);
                     const messages = result.record.messages || [];
+                    console.log('Existing messages from JSONbin.io:', messages);
                     
                     // Add new message
                     messages.push(data);
+                    console.log('Updated messages for JSONbin.io:', messages);
                     
                     // Update the bin with new messages
+                    console.log('Updating JSONbin.io with new messages...');
                     const updateResponse = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
                         method: 'PUT',
                         headers: {
@@ -147,9 +162,13 @@ contactForm.addEventListener('submit', async (e) => {
                         body: JSON.stringify({ messages })
                     });
                     
+                    console.log('JSONbin.io update response status:', updateResponse.status);
+                    
                     if (!updateResponse.ok) {
                         console.warn('JSONbin.io update failed:', updateResponse.status, updateResponse.statusText);
                         // Continue with local storage only
+                    } else {
+                        console.log('Successfully updated JSONbin.io');
                     }
                 }
             } catch (jsonbinError) {

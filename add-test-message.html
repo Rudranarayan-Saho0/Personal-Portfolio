@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Test Message to JSONbin.io</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        #output {
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            height: 400px;
+            overflow-y: auto;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Add Test Message to JSONbin.io</h1>
+    <p>This page adds a test message to your JSONbin.io bin.</p>
+    <button id="addMessage">Add Test Message</button>
+    <div id="output">Click "Add Test Message" to start...</div>
+
+    <script>
+        // Override console.log to display in the output div
+        const outputDiv = document.getElementById('output');
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        const originalConsoleWarn = console.warn;
+
+        console.log = function() {
+            const args = Array.from(arguments);
+            outputDiv.innerHTML += args.join(' ') + '\n';
+            outputDiv.scrollTop = outputDiv.scrollHeight;
+            originalConsoleLog.apply(console, arguments);
+        };
+
+        console.error = function() {
+            const args = Array.from(arguments);
+            outputDiv.innerHTML += '<span style="color: red;">' + args.join(' ') + '</span>\n';
+            outputDiv.scrollTop = outputDiv.scrollHeight;
+            originalConsoleError.apply(console, arguments);
+        };
+
+        console.warn = function() {
+            const args = Array.from(arguments);
+            outputDiv.innerHTML += '<span style="color: orange;">' + args.join(' ') + '</span>\n';
+            outputDiv.scrollTop = outputDiv.scrollHeight;
+            originalConsoleWarn.apply(console, arguments);
+        };
+    </script>
+    <script src="add-test-message.js"></script>
+</body>
+</html> 
