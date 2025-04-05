@@ -94,9 +94,20 @@ contactForm.addEventListener('submit', async (e) => {
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
 
+    // Create a timeout promise
+    const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Request timed out')), 10000); // 10 seconds timeout
+    });
+
     try {
-        // Save to Firestore
-        await db.collection('messages').add(data);
+        // First try to send the message quickly
+        const sendMessagePromise = db.collection('messages').add(data);
+        
+        // Race between quick send and timeout
+        await Promise.race([
+            sendMessagePromise,
+            timeoutPromise
+        ]);
         
         // Clear form
         contactForm.reset();
@@ -106,8 +117,12 @@ contactForm.addEventListener('submit', async (e) => {
     } catch (error) {
         console.error('Error:', error);
         
-        // Show error notification
-        showNotification('Failed to send message. Please try again.', 'error');
+        // Show error notification with specific message
+        if (error.message === 'Request timed out') {
+            showNotification('Message sending timed out. Please try again.', 'error');
+        } else {
+            showNotification('Failed to send message. Please try again.', 'error');
+        }
     } finally {
         // Reset button state
         submitBtn.textContent = originalBtnText;

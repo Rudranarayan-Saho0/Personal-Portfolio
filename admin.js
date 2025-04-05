@@ -66,54 +66,88 @@ logoutBtn.addEventListener('click', () => {
     showLogin();
 });
 
-// Load messages from Firestore
+// Function to load messages
 async function loadMessages() {
+    const messagesContainer = document.getElementById('messages-container');
+    messagesContainer.innerHTML = '<div class="loading">Loading messages...</div>';
+
     try {
-        const snapshot = await db.collection('messages').orderBy('timestamp', 'desc').get();
-        messagesList.innerHTML = '';
-        
+        const snapshot = await db.collection('messages')
+            .orderBy('timestamp', 'desc')
+            .get();
+
         if (snapshot.empty) {
-            messagesList.innerHTML = '<p class="no-messages">No messages yet</p>';
+            messagesContainer.innerHTML = '<div class="no-messages">No messages found</div>';
             return;
         }
-        
+
+        let messagesHTML = '';
         snapshot.forEach(doc => {
             const message = doc.data();
-            const messageElement = createMessageElement(doc.id, message);
-            messagesList.appendChild(messageElement);
+            const timestamp = message.timestamp ? message.timestamp.toDate().toLocaleString() : 'No timestamp';
+            messagesHTML += `
+                <div class="message-card">
+                    <div class="message-header">
+                        <h3>${message.name}</h3>
+                        <span class="timestamp">${timestamp}</span>
+                    </div>
+                    <p class="email">${message.email}</p>
+                    <p class="message-content">${message.message}</p>
+                    <button class="delete-btn" onclick="deleteMessage('${doc.id}')">Delete</button>
+                </div>
+            `;
         });
+
+        messagesContainer.innerHTML = messagesHTML;
     } catch (error) {
         console.error('Error loading messages:', error);
-        messagesList.innerHTML = '<p class="error-message">Error loading messages</p>';
+        messagesContainer.innerHTML = '<div class="error">Failed to load messages. Please try again.</div>';
     }
 }
 
-// Create message element
-function createMessageElement(id, message) {
-    const div = document.createElement('div');
-    div.className = 'message-card';
-    div.innerHTML = `
-        <h3>${message.name}</h3>
-        <div class="email">${message.email}</div>
-        <div class="date">${message.timestamp ? new Date(message.timestamp.toDate()).toLocaleString() : 'No date'}</div>
-        <div class="content">${message.message}</div>
-        <button class="delete-btn" onclick="deleteMessage('${id}')">Delete</button>
-    `;
-    return div;
-}
+// Function to delete a message
+async function deleteMessage(messageId) {
+    if (!confirm('Are you sure you want to delete this message?')) {
+        return;
+    }
 
-// Delete message
-async function deleteMessage(id) {
-    if (confirm('Are you sure you want to delete this message?')) {
-        try {
-            await db.collection('messages').doc(id).delete();
-            loadMessages();
-        } catch (error) {
-            console.error('Error deleting message:', error);
-            alert('Failed to delete message');
-        }
+    try {
+        await db.collection('messages').doc(messageId).delete();
+        showNotification('Message deleted successfully', 'success');
+        loadMessages(); // Reload messages after deletion
+    } catch (error) {
+        console.error('Error deleting message:', error);
+        showNotification('Failed to delete message', 'error');
     }
 }
+
+// Add notification function for admin page
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    // Show notification
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 10);
+
+    // Remove notification after 5 seconds
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
+    }, 5000);
+}
+
+// Load messages when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+    loadMessages();
+    // Refresh messages every 30 seconds
+    setInterval(loadMessages, 30000);
+});
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded', checkLoginStatus); 
