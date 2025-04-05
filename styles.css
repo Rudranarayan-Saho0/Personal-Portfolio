@@ -153,6 +153,37 @@ section h2 {
     color: var(--secondary-color);
 }
 
+/* About Section */
+.about {
+    background-color: var(--background-light);
+}
+
+.about-content {
+    max-width: var(--container-width);
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.about-text {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: var(--card-shadow);
+}
+
+.about-text p {
+    font-size: 1.1rem;
+    color: var(--text-color);
+    margin-bottom: 1.5rem;
+}
+
+.about-text p:last-child {
+    margin-bottom: 0;
+}
+
 /* Skills Grid */
 .skills-grid {
     display: grid;
