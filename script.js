@@ -84,6 +84,10 @@ function showNotification(message, type = 'info') {
     }, 5000);
 }
 
+// JSONbin.io configuration
+const JSONBIN_API_KEY = '$2a$10$YOUR_API_KEY'; // Replace with your actual API key
+const JSONBIN_BIN_ID = 'YOUR_BIN_ID'; // Replace with your actual bin ID
+
 // Contact form submission
 const contactForm = document.getElementById('contact-form');
 contactForm.addEventListener('submit', async (e) => {
@@ -106,14 +110,42 @@ contactForm.addEventListener('submit', async (e) => {
     };
 
     try {
-        // Save message to local storage
-        const messages = JSON.parse(localStorage.getItem('messages') || '[]');
-        messages.push(data);
-        localStorage.setItem('messages', JSON.stringify(messages));
+        // First, get existing messages
+        const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+            method: 'GET',
+            headers: {
+                'X-Master-Key': JSONBIN_API_KEY
+            }
+        });
         
-        // Log for debugging
-        console.log('Message saved:', data);
-        console.log('All messages:', JSON.parse(localStorage.getItem('messages')));
+        if (!response.ok) {
+            throw new Error('Failed to fetch existing messages');
+        }
+        
+        const result = await response.json();
+        const messages = result.record.messages || [];
+        
+        // Add new message
+        messages.push(data);
+        
+        // Update the bin with new messages
+        const updateResponse = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Master-Key': JSONBIN_API_KEY
+            },
+            body: JSON.stringify({ messages })
+        });
+        
+        if (!updateResponse.ok) {
+            throw new Error('Failed to save message');
+        }
+        
+        // Also save to local storage as backup
+        const localMessages = JSON.parse(localStorage.getItem('messages') || '[]');
+        localMessages.push(data);
+        localStorage.setItem('messages', JSON.stringify(localMessages));
         
         // Clear form
         contactForm.reset();
