@@ -26,7 +26,7 @@ window.addEventListener('scroll', function() {
 
 // Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyDod5DJP4KAruPlB2v",
+    apiKey: "AIzaSyDxQZQZQZQZQZQZQZQZQZQZQZQZQZQZQZQ",
     authDomain: "personal-portfolio-12345.firebaseapp.com",
     projectId: "personal-portfolio-12345",
     storageBucket: "personal-portfolio-12345.appspot.com",
@@ -94,20 +94,9 @@ contactForm.addEventListener('submit', async (e) => {
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
 
-    // Create a timeout promise
-    const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Request timed out')), 10000); // 10 seconds timeout
-    });
-
     try {
-        // First try to send the message quickly
-        const sendMessagePromise = db.collection('messages').add(data);
-        
-        // Race between quick send and timeout
-        await Promise.race([
-            sendMessagePromise,
-            timeoutPromise
-        ]);
+        // Attempt to send the message
+        await db.collection('messages').add(data);
         
         // Clear form
         contactForm.reset();
@@ -115,14 +104,8 @@ contactForm.addEventListener('submit', async (e) => {
         // Show success notification
         showNotification('Message sent successfully!', 'success');
     } catch (error) {
-        console.error('Error:', error);
-        
-        // Show error notification with specific message
-        if (error.message === 'Request timed out') {
-            showNotification('Message sending timed out. Please try again.', 'error');
-        } else {
-            showNotification('Failed to send message. Please try again.', 'error');
-        }
+        console.error('Error sending message:', error);
+        showNotification('Failed to send message. Please try again.', 'error');
     } finally {
         // Reset button state
         submitBtn.textContent = originalBtnText;
