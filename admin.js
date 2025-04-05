@@ -2,10 +2,8 @@
 const ADMIN_USERNAME = "Rudra";
 const ADMIN_PASSWORD = "Rudra@2005";
 
-// JSONbin.io configuration
-const JSONBIN_API_KEY = '$2a$10$XGwPbUeqH1q6l4qk9iwB0eeMYLhC3oZu9/oNvvHZtHAD212nVBY46';
-const JSONBIN_BIN_ID = '67f159d98960c979a57ecc76';
-const USE_JSONBIN = true; // Enable JSONbin.io integration
+// Server configuration
+const SERVER_URL = 'http://localhost:3000/api';
 
 // DOM elements
 const loginSection = document.getElementById('login-section');
@@ -78,58 +76,29 @@ async function loadMessages() {
     messagesContainer.innerHTML = '<div class="loading">Loading messages...</div>';
 
     try {
-        // Try to get messages from JSONbin.io first if enabled
+        // Try to get messages from SQL server
         let messages = [];
         
-        if (USE_JSONBIN) {
-            try {
-                console.log('Fetching from JSONbin.io...');
-                const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-                    method: 'GET',
-                    headers: {
-                        'X-Master-Key': JSONBIN_API_KEY,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                console.log('JSONbin.io response status:', response.status);
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    console.log('JSONbin.io response:', result);
-                    
-                    if (result.record && Array.isArray(result.record.messages)) {
-                        messages = result.record.messages;
-                        console.log('Messages loaded from JSONbin.io:', messages);
-                    } else {
-                        console.warn('No messages array found in JSONbin.io response');
-                        // Initialize the messages array in JSONbin.io
-                        const initResponse = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-                            method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-Master-Key': JSONBIN_API_KEY
-                            },
-                            body: JSON.stringify({ messages: [] })
-                        });
-                        console.log('Initialized messages array in JSONbin.io:', initResponse.status);
-                    }
-                } else {
-                    console.warn('JSONbin.io fetch failed:', response.status, response.statusText);
-                    // Fall back to local storage
-                    messages = JSON.parse(localStorage.getItem('messages') || '[]');
-                    console.log('Falling back to local storage:', messages);
-                }
-            } catch (error) {
-                console.warn('Error fetching from JSONbin:', error);
+        try {
+            console.log('Fetching from SQL server...');
+            const response = await fetch(`${SERVER_URL}/messages`);
+            
+            console.log('Server response status:', response.status);
+            
+            if (response.ok) {
+                messages = await response.json();
+                console.log('Messages loaded from SQL server:', messages);
+            } else {
+                console.warn('SQL server fetch failed:', response.status, response.statusText);
                 // Fall back to local storage
                 messages = JSON.parse(localStorage.getItem('messages') || '[]');
-                console.log('Error occurred, using local storage:', messages);
+                console.log('Falling back to local storage:', messages);
             }
-        } else {
-            // Use local storage directly
+        } catch (error) {
+            console.warn('Error fetching from SQL server:', error);
+            // Fall back to local storage
             messages = JSON.parse(localStorage.getItem('messages') || '[]');
-            console.log('Using local storage directly:', messages);
+            console.log('Error occurred, using local storage:', messages);
         }
         
         if (messages.length === 0) {
@@ -173,37 +142,32 @@ async function deleteMessage(messageId) {
     }
 
     try {
-        // Get messages from local storage first
-        let messages = JSON.parse(localStorage.getItem('messages') || '[]');
-        
-        // Filter out the message to delete
-        messages = messages.filter(message => message.id !== messageId);
-        
-        // Update local storage
-        localStorage.setItem('messages', JSON.stringify(messages));
-        
-        // Try to update JSONbin.io if enabled
-        if (USE_JSONBIN) {
-            try {
-                const updateResponse = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Master-Key': JSONBIN_API_KEY
-                    },
-                    body: JSON.stringify({ messages })
-                });
-                
-                if (!updateResponse.ok) {
-                    const errorText = await updateResponse.text();
-                    console.warn('JSONbin.io update failed:', updateResponse.status, errorText);
-                } else {
-                    console.log('Successfully updated JSONbin.io after deletion');
-                }
-            } catch (error) {
-                console.warn('Error updating JSONbin:', error);
+        // Try to delete from SQL server
+        try {
+            console.log('Deleting from SQL server...');
+            const response = await fetch(`${SERVER_URL}/messages/${messageId}`, {
+                method: 'DELETE'
+            });
+            
+            console.log('Delete response status:', response.status);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.warn('SQL server delete failed:', response.status, errorText);
+                throw new Error(`Server error: ${response.status}`);
             }
+            
+            console.log('Successfully deleted from SQL server');
+        } catch (serverError) {
+            console.error('SQL server error:', serverError);
+            // Continue with local storage deletion
         }
+        
+        // Also delete from local storage
+        let messages = JSON.parse(localStorage.getItem('messages') || '[]');
+        messages = messages.filter(message => message.id !== messageId);
+        localStorage.setItem('messages', JSON.stringify(messages));
+        console.log('Deleted from local storage');
         
         showNotification('Message deleted successfully', 'success');
         loadMessages(); // Reload messages after deletion

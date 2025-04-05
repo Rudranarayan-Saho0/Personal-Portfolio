@@ -60,10 +60,8 @@ function showNotification(message, type = 'info') {
     }, 5000);
 }
 
-// JSONbin.io configuration
-const JSONBIN_API_KEY = '$2a$10$XGwPbUeqH1q6l4qk9iwB0eeMYLhC3oZu9/oNvvHZtHAD212nVBY46';
-const JSONBIN_BIN_ID = '67f159d98960c979a57ecc76';
-const USE_JSONBIN = true; // Enable JSONbin.io integration
+// Server configuration
+const SERVER_URL = 'http://localhost:3000/api';
 
 // Contact form submission
 const contactForm = document.getElementById('contact-form');
@@ -97,66 +95,31 @@ contactForm.addEventListener('submit', async (e) => {
         localStorage.setItem('messages', JSON.stringify(localMessages));
         console.log('Saved to local storage:', localMessages);
         
-        // Then try to save to JSONbin.io if enabled
-        if (USE_JSONBIN) {
-            try {
-                // First, get existing messages from JSONbin.io
-                console.log('Fetching existing messages from JSONbin.io...');
-                const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-                    method: 'GET',
-                    headers: {
-                        'X-Master-Key': JSONBIN_API_KEY,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                console.log('JSONbin.io fetch response status:', response.status);
-                
-                let messages = [];
-                if (response.ok) {
-                    const result = await response.json();
-                    console.log('JSONbin.io fetch response:', result);
-                    
-                    // Check if the response has the expected structure
-                    if (result.record && Array.isArray(result.record.messages)) {
-                        messages = result.record.messages;
-                    } else {
-                        console.warn('Invalid response structure from JSONbin.io, initializing new messages array');
-                        messages = [];
-                    }
-                } else {
-                    console.warn('JSONbin.io fetch failed, using local messages array');
-                    messages = localMessages;
-                }
-                
-                // Add new message
-                messages.push(data);
-                console.log('Updated messages for JSONbin.io:', messages);
-                
-                // Update JSONbin.io with new messages
-                console.log('Updating JSONbin.io with new messages...');
-                const updateResponse = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Master-Key': JSONBIN_API_KEY
-                    },
-                    body: JSON.stringify({ messages })
-                });
-                
-                console.log('JSONbin.io update response status:', updateResponse.status);
-                
-                if (!updateResponse.ok) {
-                    const errorText = await updateResponse.text();
-                    console.error('JSONbin.io update failed:', updateResponse.status, errorText);
-                    // Don't throw here, we already saved to local storage
-                } else {
-                    console.log('Successfully updated JSONbin.io');
-                }
-            } catch (jsonbinError) {
-                console.error('JSONbin.io error:', jsonbinError);
-                // Don't throw here, we already saved to local storage
+        // Then try to save to SQL server
+        try {
+            console.log('Sending message to SQL server...');
+            const response = await fetch(`${SERVER_URL}/messages`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            
+            console.log('Server response status:', response.status);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Server error:', response.status, errorText);
+                throw new Error(`Server error: ${response.status}`);
             }
+            
+            const result = await response.json();
+            console.log('Server response:', result);
+            console.log('Successfully saved to SQL server');
+        } catch (serverError) {
+            console.error('SQL server error:', serverError);
+            // Don't throw here, we already saved to local storage
         }
         
         // Clear form
