@@ -24,57 +24,63 @@ window.addEventListener('scroll', function() {
     }
 });
 
-// Initialize EmailJS with your public key
-(function() {
-    emailjs.init("Dod5DJP4KAruPlB2v");
-})();
+// Firebase configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyDod5DJP4KAruPlB2v",
+    authDomain: "personal-portfolio-12345.firebaseapp.com",
+    projectId: "personal-portfolio-12345",
+    storageBucket: "personal-portfolio-12345.appspot.com",
+    messagingSenderId: "123456789012",
+    appId: "1:123456789012:web:abcdef1234567890"
+};
 
-// Form submission handling
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// Mobile menu functionality
+const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+const navLinks = document.querySelector('.nav-links');
+
+mobileMenuBtn.addEventListener('click', () => {
+    navLinks.classList.toggle('active');
+});
+
+// Contact form submission
 const contactForm = document.getElementById('contact-form');
-if (contactForm) {
-    contactForm.addEventListener('submit', async function(e) {
-        e.preventDefault();
+contactForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    // Show loading state
+    const submitBtn = contactForm.querySelector('.submit-btn');
+    const originalBtnText = submitBtn.textContent;
+    submitBtn.textContent = 'Sending...';
+    submitBtn.disabled = true;
+    
+    const formData = new FormData(contactForm);
+    const data = {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        message: formData.get('message'),
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    try {
+        // Save to Firestore
+        await db.collection('messages').add(data);
         
-        // Show loading state
-        const submitBtn = this.querySelector('.submit-btn');
-        const originalBtnText = submitBtn.textContent;
-        submitBtn.textContent = 'Sending...';
-        submitBtn.disabled = true;
-
-        try {
-            // Get form data
-            const formData = new FormData(this);
-            const templateParams = {
-                to_name: "Rudra",
-                from_name: formData.get('name'),
-                from_email: formData.get('email'),
-                message: formData.get('message'),
-                reply_to: formData.get('email')
-            };
-
-            // Send email using EmailJS
-            const response = await emailjs.send(
-                'service_72uzjwq',
-                'template_r8f6fas',
-                templateParams
-            );
-
-            if (response.status === 200) {
-                alert('Thank you for your message! I will get back to you soon.');
-                contactForm.reset();
-            } else {
-                throw new Error('Failed to send message');
-            }
-        } catch (error) {
-            console.error('Failed to send email:', error);
-            alert('Sorry, there was an error sending your message. Please try again later.');
-        } finally {
-            // Reset button state
-            submitBtn.textContent = originalBtnText;
-            submitBtn.disabled = false;
-        }
-    });
-}
+        // Clear form
+        contactForm.reset();
+        alert('Message sent successfully!');
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to send message. Please try again.');
+    } finally {
+        // Reset button state
+        submitBtn.textContent = originalBtnText;
+        submitBtn.disabled = false;
+    }
+});
 
 // Add animation to skill cards on scroll
 const skillCards = document.querySelectorAll('.skill-card');
@@ -98,26 +104,16 @@ skillCards.forEach(card => {
     observer.observe(card);
 });
 
-// Mobile menu toggle
-const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
-const navLinks = document.querySelector('.nav-links');
+// Close mobile menu when clicking outside
+document.addEventListener('click', (e) => {
+    if (!mobileMenuBtn.contains(e.target) && !navLinks.contains(e.target)) {
+        navLinks.classList.remove('active');
+    }
+});
 
-if (mobileMenuBtn) {
-    mobileMenuBtn.addEventListener('click', () => {
-        navLinks.classList.toggle('active');
+// Close mobile menu when clicking a link
+navLinks.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => {
+        navLinks.classList.remove('active');
     });
-
-    // Close mobile menu when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!mobileMenuBtn.contains(e.target) && !navLinks.contains(e.target)) {
-            navLinks.classList.remove('active');
-        }
-    });
-
-    // Close mobile menu when clicking a link
-    navLinks.querySelectorAll('a').forEach(link => {
-        link.addEventListener('click', () => {
-            navLinks.classList.remove('active');
-        });
-    });
-} 
+}); 
