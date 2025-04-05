@@ -29,6 +29,7 @@ const ADMIN_PASSWORD = "Rudra@2005";
 // JSONbin.io configuration
 const JSONBIN_API_KEY = '$2a$10$YOUR_API_KEY'; // Replace with your actual API key
 const JSONBIN_BIN_ID = 'YOUR_BIN_ID'; // Replace with your actual bin ID
+const USE_JSONBIN = false; // Set to true when you have valid API key and bin ID
 
 // DOM elements
 const loginSection = document.getElementById('login-section');
@@ -86,24 +87,34 @@ async function loadMessages() {
     messagesContainer.innerHTML = '<div class="loading">Loading messages...</div>';
 
     try {
-        // Try to get messages from JSONbin.io first
+        // Try to get messages from JSONbin.io first if enabled
         let messages = [];
         
-        try {
-            const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-                method: 'GET',
-                headers: {
-                    'X-Master-Key': JSONBIN_API_KEY
+        if (USE_JSONBIN) {
+            try {
+                const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Master-Key': JSONBIN_API_KEY
+                    }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    messages = result.record.messages || [];
+                    console.log('Messages loaded from JSONbin.io');
+                } else {
+                    console.warn('JSONbin.io fetch failed:', response.status, response.statusText);
+                    // Fall back to local storage
+                    messages = JSON.parse(localStorage.getItem('messages') || '[]');
                 }
-            });
-            
-            if (response.ok) {
-                const result = await response.json();
-                messages = result.record.messages || [];
+            } catch (error) {
+                console.warn('Error fetching from JSONbin:', error);
+                // Fall back to local storage
+                messages = JSON.parse(localStorage.getItem('messages') || '[]');
             }
-        } catch (error) {
-            console.error('Error fetching from JSONbin:', error);
-            // Fall back to local storage if JSONbin fails
+        } else {
+            // Use local storage directly
             messages = JSON.parse(localStorage.getItem('messages') || '[]');
         }
         
@@ -145,42 +156,34 @@ async function deleteMessage(messageId) {
     }
 
     try {
-        // Get messages from JSONbin.io
-        const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-            method: 'GET',
-            headers: {
-                'X-Master-Key': JSONBIN_API_KEY
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to fetch messages');
-        }
-        
-        const result = await response.json();
-        let messages = result.record.messages || [];
+        // Get messages from local storage first
+        let messages = JSON.parse(localStorage.getItem('messages') || '[]');
         
         // Filter out the message to delete
         messages = messages.filter(message => message.id !== messageId);
         
-        // Update JSONbin.io
-        const updateResponse = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Master-Key': JSONBIN_API_KEY
-            },
-            body: JSON.stringify({ messages })
-        });
+        // Update local storage
+        localStorage.setItem('messages', JSON.stringify(messages));
         
-        if (!updateResponse.ok) {
-            throw new Error('Failed to update messages');
+        // Try to update JSONbin.io if enabled
+        if (USE_JSONBIN) {
+            try {
+                const updateResponse = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': JSONBIN_API_KEY
+                    },
+                    body: JSON.stringify({ messages })
+                });
+                
+                if (!updateResponse.ok) {
+                    console.warn('JSONbin.io update failed:', updateResponse.status, updateResponse.statusText);
+                }
+            } catch (error) {
+                console.warn('Error updating JSONbin:', error);
+            }
         }
-        
-        // Also update local storage
-        const localMessages = JSON.parse(localStorage.getItem('messages') || '[]');
-        const updatedLocalMessages = localMessages.filter(message => message.id !== messageId);
-        localStorage.setItem('messages', JSON.stringify(updatedLocalMessages));
         
         showNotification('Message deleted successfully', 'success');
         loadMessages(); // Reload messages after deletion

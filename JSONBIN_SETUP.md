@@ -2,6 +2,10 @@
 
 This guide will help you set up JSONbin.io to store messages from your contact form. JSONbin.io is a free service that allows you to store JSON data in the cloud without setting up a server.
 
+## Current Implementation
+
+The current implementation uses local storage as the primary storage method. JSONbin.io is optional and can be enabled when you have valid API credentials.
+
 ## Step 1: Create a JSONbin.io Account
 
 1. Go to [JSONbin.io](https://jsonbin.io/) and sign up for a free account
@@ -31,12 +35,14 @@ This guide will help you set up JSONbin.io to store messages from your contact f
    ```javascript
    const JSONBIN_API_KEY = '$2a$10$YOUR_API_KEY'; // Replace with your actual API key
    const JSONBIN_BIN_ID = 'YOUR_BIN_ID'; // Replace with your actual bin ID
+   const USE_JSONBIN = true; // Set to true to enable JSONbin.io
    ```
 
 2. Open `admin.js` and replace the same lines with your actual values:
    ```javascript
    const JSONBIN_API_KEY = '$2a$10$YOUR_API_KEY'; // Replace with your actual API key
    const JSONBIN_BIN_ID = 'YOUR_BIN_ID'; // Replace with your actual bin ID
+   const USE_JSONBIN = true; // Set to true to enable JSONbin.io
    ```
 
 ## Step 5: Test Your Setup
@@ -53,6 +59,7 @@ If messages are not appearing in the admin panel:
 2. Verify that your API key and bin ID are correct
 3. Make sure your JSONbin.io account is active
 4. Try submitting a new message to see if it appears
+5. If JSONbin.io is not working, messages will still be saved to local storage
 
 ## Security Considerations
 
